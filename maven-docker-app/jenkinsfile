@@ -1,0 +1,57 @@
+pipeline {
+    agent any
+
+    environment {
+        DOCKER_HUB_USER = 'digitalkfmw'
+        DOCKER_IMAGE = 'digitalkfmw/maven-docker-app'
+    }
+
+    stages {
+        stage('Checkout Code') {
+            steps {
+                git branch: 'main', url: 'https://github.com/digitalkfmw/cicd-maven-docker.git'
+            }
+        }
+
+        stage('Build with Maven') {
+            steps {
+                bat 'mvn clean package'
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                bat """
+                docker build -t %DOCKER_IMAGE% .
+                """
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                withDockerRegistry([credentialsId: 'docker-hub-credentials', url: '']) {
+                    bat 'docker push %DOCKER_IMAGE%'
+                }
+            }
+        }
+
+        stage('Deploy Container') {
+            steps {
+                bat """
+                docker stop maven-container || echo 'Container not running'
+                docker rm maven-container || echo 'Container does not exist'
+                docker run -d -p 7070:8080 --name maven-container %DOCKER_IMAGE%
+                """
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'CI/CD Pipeline with Maven & Docker is Successful! Visit http://localhost:7070'
+        }
+        failure {
+            echo 'Build, Test, or Deployment Failed!'
+        }
+    }
+}
