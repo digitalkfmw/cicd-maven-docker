@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_HUB_USER = 'digitalkfmw'
+        DOCKER_HUB_USER = 'digitalk.fmw@gmail.com'
         DOCKER_IMAGE = 'digitalkfmw/maven-docker-app'
     }
 
@@ -15,15 +15,19 @@ pipeline {
 
         stage('Build with Maven') {
             steps {
-                bat 'mvn clean package'
+                dir('maven-docker-app') {  // Run Maven inside correct directory
+                    bat 'mvn clean package'
+                }
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                bat """
-                docker build -t %DOCKER_IMAGE% .
-                """
+                dir('maven-docker-app') {  // Ensure Docker build happens in correct directory
+                    bat """
+                    docker build -t %DOCKER_IMAGE% .
+                    """
+                }
             }
         }
 
@@ -55,3 +59,4 @@ pipeline {
         }
     }
 }
+
